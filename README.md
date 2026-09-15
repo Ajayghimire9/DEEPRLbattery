@@ -1,66 +1,104 @@
-# DEEPRLbattery
-# Microgrid Environment and Double Deep Q-Network (DDQN) Agent
+# GridMind — Safe Reinforcement Learning for Microgrid Energy Optimization
 
-This repository contains code for a custom gym environment representing a microgrid and a Double Deep Q-Network (DDQN) agent trained to make decisions within this environment.
+**Production-oriented reinforcement-learning platform for battery dispatch under energy, efficiency, and operational constraints.**
 
-## Microgrid Environment (MicrogridEnv)
+This project evolves the original microgrid DDQN research prototype into a reproducible ML engineering system: a constrained simulator, Double DQN learner, deterministic training pipeline, safety-focused tests, packaging, containerization, and CI.
 
-The `MicrogridEnv` class represents a microgrid environment in which the DDQN agent learns to control energy storage and consumption based on various parameters.
+## Architecture
 
-### Features of the Microgrid Environment:
+```text
+Energy / PV / Price Profiles
+          │
+          ▼
+┌────────────────────────────┐
+│ Constrained Microgrid Env  │
+│ • SOC dynamics             │
+│ • charge/discharge limits  │
+│ • efficiency losses        │
+│ • constraint penalties     │
+└─────────────┬──────────────┘
+              │ state
+              ▼
+┌────────────────────────────┐
+│ Double DQN Agent           │
+│ • online Q-network         │
+│ • target network           │
+│ • experience replay        │
+│ • Huber loss               │
+│ • gradient clipping        │
+└─────────────┬──────────────┘
+              │ policy
+              ▼
+      Battery Dispatch
+              │
+              ▼
+      Reward / Safety KPIs
 
-- Battery and hydrogen tank energy storage control
-- Energy storage sizing and efficiency parameters
-- Reward function modeling
-- Time-based constraints and forecasts
+CI → Ruff → Pytest → Docker
+```
 
-## Double Deep Q-Network (DDQN) Agent
+## Engineering features
 
-The `DoubleDQNAgent` class implements the DDQN algorithm to train an agent to make decisions within the microgrid environment.
+- **Safe action execution:** infeasible battery commands are clipped instead of violating state constraints.
+- **Double DQN:** separates action selection from target evaluation to reduce Q-value overestimation.
+- **Experience replay:** decorrelates sequential transitions and improves sample efficiency.
+- **Target-network synchronization:** stabilizes temporal-difference learning.
+- **Huber loss + gradient clipping:** robust optimization for noisy RL targets.
+- **Deterministic experiments:** explicit NumPy/PyTorch seeds and isolated episode profiles.
+- **Operational metrics:** reward, SOC, grid exchange, energy cost, and constraint penalties are returned from every transition.
+- **Testable architecture:** environment, learner, and training loop are separated into importable modules.
+- **Container-ready:** reproducible Python image for training.
+- **CI:** automated linting and unit tests on pushes and pull requests.
 
-### Features of the DDQN Agent:
+## Project structure
 
-- Neural network model architecture using Keras
-- Experience replay for memory management
-- Target network updates for improved stability
-- Exploration-exploitation trade-off using epsilon-greedy policy
-- Training and evaluation on different microgrid scenarios
+```text
+src/gridmind/
+├── __init__.py
+├── env.py       # constrained microgrid simulator
+├── agent.py     # Double DQN, replay buffer, Q-network
+└── train.py     # reproducible training entry point
 
-## Usage and Examples
+tests/
+└── test_env.py
 
-To run and evaluate the agent, follow these steps:
+.github/workflows/ci.yml
+Dockerfile
+pyproject.toml
+```
 
-1. Set up the required datasets:
-   - Load the consumption, production, and spotmarket data.
-   - Resample the data to hourly timesteps using forward fill.
+## Run locally
 
-2. Initialize and Train the Agent:
-   - Initialize the DDQN agent with the appropriate state and action sizes.
-   - Train the agent using the training data and save the trained weights.
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e '.[dev]'
+ruff check src tests
+pytest -q
+python -m gridmind.train --episodes 100
+```
 
-3. Evaluate the Agent:
-   - Load the trained agent's weights.
-   - Create separate environments for summer and winter test data.
-   - Evaluate the agent's performance on the test data for both summer and winter periods.
+## Run with Docker
 
-4. Generate Specific Graphs:
-   - Use the `generate_specific_graph` function to visualize the agent's actions, battery levels, consumption, and production over time.
+```bash
+docker build -t gridmind .
+docker run --rm gridmind
+```
 
-## Requirements
+## Why this project matters
 
-The code is implemented in Python and requires the following libraries:
+The important engineering problem is not simply training a neural network. An energy controller must operate inside physical constraints and expose measurable consequences of its decisions. GridMind therefore treats the simulator as an environment contract and makes safety signals first-class outputs of the learning loop.
 
-- NumPy
-- gym
-- pandas
-- matplotlib
-- keras (for building and training neural networks)
+## Roadmap
 
+- Prioritized experience replay
+- Distributional / dueling DQN variants
+- Optuna hyperparameter search
+- MLflow experiment tracking
+- Offline evaluation against rule-based and MPC baselines
+- Forecast-aware state representation
+- FastAPI policy inference service
+- Prometheus metrics and Grafana dashboards
+- Kubernetes deployment
 
-
-
-## Acknowledgments
-
-This project is inspired by research in microgrid management and reinforcement learning. It provides a starting point for developing and experimenting with reinforcement learning algorithms in microgrid scenarios.
-
-For any questions or inquiries, please contact Ajay Ghimire at ajayghimire42@gmail.com.
+> Roadmap items are intentionally listed as future work rather than presented as implemented functionality.
