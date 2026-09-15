@@ -1,0 +1,17 @@
+[project]
+name = "gridmind-energy-optimizer"
+version = "2.0.0"
+description = "Safe reinforcement-learning platform for microgrid battery optimization"
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.26,<3", "torch>=2.3,<3"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9", "ruff>=0.8,<1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
