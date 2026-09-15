@@ -1,104 +1,34 @@
-# GridMind — Safe Reinforcement Learning for Microgrid Energy Optimization
+# GridMind
 
-**Production-oriented reinforcement-learning platform for battery dispatch under energy, efficiency, and operational constraints.**
+Reinforcement learning for battery dispatch.
 
-This project evolves the original microgrid DDQN research prototype into a reproducible ML engineering system: a constrained simulator, Double DQN learner, deterministic training pipeline, safety-focused tests, packaging, containerization, and CI.
-
-## Architecture
-
-```text
-Energy / PV / Price Profiles
-          │
-          ▼
-┌────────────────────────────┐
-│ Constrained Microgrid Env  │
-│ • SOC dynamics             │
-│ • charge/discharge limits  │
-│ • efficiency losses        │
-│ • constraint penalties     │
-└─────────────┬──────────────┘
-              │ state
-              ▼
-┌────────────────────────────┐
-│ Double DQN Agent           │
-│ • online Q-network         │
-│ • target network           │
-│ • experience replay        │
-│ • Huber loss               │
-│ • gradient clipping        │
-└─────────────┬──────────────┘
-              │ policy
-              ▼
-      Battery Dispatch
-              │
-              ▼
-      Reward / Safety KPIs
-
-CI → Ruff → Pytest → Docker
-```
-
-## Engineering features
-
-- **Safe action execution:** infeasible battery commands are clipped instead of violating state constraints.
-- **Double DQN:** separates action selection from target evaluation to reduce Q-value overestimation.
-- **Experience replay:** decorrelates sequential transitions and improves sample efficiency.
-- **Target-network synchronization:** stabilizes temporal-difference learning.
-- **Huber loss + gradient clipping:** robust optimization for noisy RL targets.
-- **Deterministic experiments:** explicit NumPy/PyTorch seeds and isolated episode profiles.
-- **Operational metrics:** reward, SOC, grid exchange, energy cost, and constraint penalties are returned from every transition.
-- **Testable architecture:** environment, learner, and training loop are separated into importable modules.
-- **Container-ready:** reproducible Python image for training.
-- **CI:** automated linting and unit tests on pushes and pull requests.
-
-## Project structure
-
-```text
-src/gridmind/
-├── __init__.py
-├── env.py       # constrained microgrid simulator
-├── agent.py     # Double DQN, replay buffer, Q-network
-└── train.py     # reproducible training entry point
-
-tests/
-└── test_env.py
-
-.github/workflows/ci.yml
-Dockerfile
-pyproject.toml
-```
+GridMind explores battery scheduling under energy and efficiency constraints. The packaged simulator and DDQN learner provide a small reproducible environment for checking controller behavior before attempting a larger energy experiment.
 
 ## Run locally
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e '.[dev]'
-ruff check src tests
-pytest -q
-python -m gridmind.train --episodes 100
-```
-
-## Run with Docker
+Use Python 3.11 or newer in a virtual environment.
 
 ```bash
-docker build -t gridmind .
-docker run --rm gridmind
+pip install -e ".[dev]"
+python -m gridmind.train --episodes 20
 ```
 
-## Why this project matters
+## Design decisions
 
-The important engineering problem is not simply training a neural network. An energy controller must operate inside physical constraints and expose measurable consequences of its decisions. GridMind therefore treats the simulator as an environment contract and makes safety signals first-class outputs of the learning loop.
+Positive action means discharge into the AC bus; negative action means charging. Grid demand and battery losses use the same sign convention.
 
-## Roadmap
+Charge and discharge limits account for efficiency, keeping state of charge within [0,1]. Invalid actions and steps after termination are rejected.
 
-- Prioritized experience replay
-- Distributional / dueling DQN variants
-- Optuna hyperparameter search
-- MLflow experiment tracking
-- Offline evaluation against rule-based and MPC baselines
-- Forecast-aware state representation
-- FastAPI policy inference service
-- Prometheus metrics and Grafana dashboards
-- Kubernetes deployment
+Double DQN uses experience replay, a target network, Huber loss and gradient clipping. Python, NumPy and PyTorch seeds are set for repeatable CPU experiments.
 
-> Roadmap items are intentionally listed as future work rather than presented as implemented functionality.
+## Technology
+
+Python, NumPy, PyTorch, pytest, Docker, GitHub Actions.
+
+## Validation
+
+Run `python -m pytest tests -q` from the repository root. CI runs the maintained test suite and lint checks. Tests use local fixtures or mocks and do not deploy cloud resources.
+
+## Scope and limitations
+
+The packaged simulator uses synthetic profiles and permits grid imports and exports. It is distinct from the original off-grid thesis experiments in basecase.py, case_2.py and case_3.py. The summary reports training returns, not an independently validated policy improvement. Checkpoint-based serving and MLflow integration are not implemented.

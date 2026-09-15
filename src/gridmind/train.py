@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 from pathlib import Path
+
 import numpy as np
 import torch
 
@@ -11,6 +13,9 @@ from .env import MicrogridEnv
 
 
 def train(episodes: int = 100, seed: int = 42) -> dict:
+    if episodes < 1:
+        raise ValueError("episodes must be positive")
+    random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     env = MicrogridEnv()
@@ -33,7 +38,12 @@ def train(episodes: int = 100, seed: int = 42) -> dict:
         epsilon = max(0.05, epsilon * 0.985)
         if (episode + 1) % 10 == 0:
             agent.sync_target()
-    return {"episodes": episodes, "mean_return": float(np.mean(returns[-20:])), "best_return": float(np.max(returns)), "epsilon": epsilon}
+    return {
+        "episodes": episodes,
+        "mean_return": float(np.mean(returns[-20:])),
+        "best_return": float(np.max(returns)),
+        "epsilon": epsilon,
+    }
 
 
 if __name__ == "__main__":

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import random
 from collections import deque
 from dataclasses import dataclass
-import random
+
 import numpy as np
 import torch
 from torch import nn
@@ -11,7 +12,13 @@ from torch import nn
 class QNetwork(nn.Module):
     def __init__(self, obs_dim: int, action_dim: int = 21) -> None:
         super().__init__()
-        self.net = nn.Sequential(nn.Linear(obs_dim, 128), nn.ReLU(), nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, action_dim))
+        self.net = nn.Sequential(
+            nn.Linear(obs_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128, action_dim),
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
@@ -43,7 +50,9 @@ class ReplayBuffer:
 class DoubleDQN:
     """Double-DQN agent with a target network and gradient clipping."""
 
-    def __init__(self, obs_dim: int, action_dim: int = 21, lr: float = 3e-4, gamma: float = 0.99) -> None:
+    def __init__(
+        self, obs_dim: int, action_dim: int = 21, lr: float = 3e-4, gamma: float = 0.99
+    ) -> None:
         self.action_dim = action_dim
         self.gamma = gamma
         self.online = QNetwork(obs_dim, action_dim)
